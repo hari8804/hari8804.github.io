@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive 4-Week Workout Planner</title>
+    <title>AI-Powered Fitness Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,18 +14,13 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        .tab, .workout-card {
+        .tab, .main-nav-btn {
             transition: all 0.3s ease-in-out;
         }
-        .completed {
-            text-decoration: line-through;
-            color: #9ca3af; /* gray-400 */
+        .completed-exercise {
+            background-color: #eef2ff; /* indigo-50 */
         }
-        .completed td {
-            background-color: #f3f4f6; /* gray-100 */
-        }
-        /* Styles for the modal */
-        #modal-backdrop.hidden {
+        #modal-backdrop.hidden, .page.hidden, #timer-modal.hidden {
             display: none;
         }
         #modal-content {
@@ -31,412 +28,393 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-slate-100 text-slate-800">
 
     <div id="app" class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
         <!-- Header Section -->
         <header class="text-center mb-8">
-            <h1 class="text-4xl sm:text-5xl font-bold text-slate-900">🏋️ Your AI-Powered Fitness Plan</h1>
-            <p class="mt-2 text-lg text-slate-600"><strong>Goal:</strong> Fat loss, strength foundation, and movement quality.</p>
+            <h1 class="text-4xl sm:text-5xl font-bold text-slate-900">🏋️ Your AI Fitness Suite</h1>
+            <p class="mt-2 text-lg text-slate-600">Personalized planning, tracking, and AI-powered assistance.</p>
         </header>
 
-        <!-- Day Selector Tabs -->
-        <nav id="day-selector" class="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-            <!-- Tabs will be inserted here by JavaScript -->
+        <!-- Main App Navigation -->
+        <nav class="flex justify-center border-b border-slate-300 mb-8">
+            <button data-page="plan" class="main-nav-btn font-semibold py-3 px-6 border-b-2 border-blue-600 text-blue-600">Workout Plan</button>
+            <button data-page="generator" class="main-nav-btn font-semibold py-3 px-6 border-b-2 border-transparent text-slate-500 hover:border-slate-400 hover:text-slate-800">AI Plan Generator</button>
+            <button data-page="progress" class="main-nav-btn font-semibold py-3 px-6 border-b-2 border-transparent text-slate-500 hover:border-slate-400 hover:text-slate-800">Progress</button>
+            <button data-page="nutrition" class="main-nav-btn font-semibold py-3 px-6 border-b-2 border-transparent text-slate-500 hover:border-slate-400 hover:text-slate-800">Nutrition Helper</button>
         </nav>
 
-        <!-- Workout Display Area -->
-        <main id="workout-display">
-            <!-- Selected day's workout will be rendered here -->
+        <!-- Page Content -->
+        <main>
+            <!-- Page 1: The Workout Plan -->
+            <div id="page-plan" class="page">
+                <nav id="day-selector" class="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
+                    <!-- Day tabs will be inserted here by JavaScript -->
+                </nav>
+                <div id="workout-display">
+                    <!-- Selected day's workout will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Page 2: AI Plan Generator -->
+            <div id="page-generator" class="page hidden">
+                <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-3xl mx-auto">
+                    <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-slate-800">✨ AI Plan Generator</h2>
+                    <p class="text-slate-600 mb-6">Let Gemini create a custom 4-day workout plan tailored to you.</p>
+                    <div class="space-y-4">
+                        <div><label for="goal" class="block text-sm font-medium text-slate-700">Primary Goal</label><select id="goal" class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"><option>Build Muscle (Hypertrophy)</option><option>Increase Strength (Powerlifting)</option><option selected>Fat Loss & General Fitness</option><option>Improve Athletic Performance</option></select></div>
+                        <div><label for="experience" class="block text-sm font-medium text-slate-700">Experience Level</label><select id="experience" class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"><option>Beginner</option><option selected>Intermediate</option><option>Advanced</option></select></div>
+                        <div><label for="equipment" class="block text-sm font-medium text-slate-700">Available Equipment</label><input type="text" id="equipment" class="mt-1 block w-full py-2 px-3 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="e.g., dumbbells, barbells, pull-up bar, resistance bands"></div>
+                    </div>
+                    <div class="mt-8 text-center"><button id="generate-plan-btn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">Generate My Plan</button></div>
+                </div>
+            </div>
+
+            <!-- Page 3: Progress Analytics -->
+            <div id="page-progress" class="page hidden">
+                <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-4xl mx-auto">
+                    <h2 class="text-2xl sm:text-3xl font-bold mb-4 text-slate-800">📈 Your Progress</h2>
+                    <div class="mb-6">
+                        <label for="progress-exercise-select" class="block text-sm font-medium text-slate-700">Select an exercise to view progress:</label>
+                        <select id="progress-exercise-select" class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></select>
+                    </div>
+                    <div>
+                        <canvas id="progress-chart"></canvas>
+                    </div>
+                     <p id="chart-message" class="text-center text-slate-500 mt-4">Log some workouts to see your progress here!</p>
+                </div>
+            </div>
+
+            <!-- Page 4: Nutrition Helper -->
+            <div id="page-nutrition" class="page hidden">
+                 <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-3xl mx-auto">
+                    <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-slate-800">🥗 Nutrition Helper</h2>
+                    <p class="text-slate-600 mb-6">Ask Gemini for meal ideas, nutrition tips, and more.</p>
+                    <textarea id="nutrition-query" class="w-full p-2 border border-slate-300 rounded-md" rows="4" placeholder="e.g., What's a good high-protein meal to eat after my leg day workout?"></textarea>
+                    <div class="mt-4 text-center"><button id="nutrition-btn" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Ask AI</button></div>
+                </div>
+            </div>
         </main>
-        
-        <!-- Footer -->
-        <footer class="text-center mt-12 text-slate-500">
-            <p>Stay consistent and enjoy the process!</p>
-        </footer>
     </div>
 
-    <!-- Gemini AI Modal -->
+    <!-- Modals -->
     <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b border-slate-200">
-                <h3 id="modal-title" class="text-xl font-bold text-slate-800">AI Assistant</h3>
-                <button id="modal-close" class="text-slate-500 hover:text-slate-800">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            <div id="modal-content-area" class="p-6 overflow-y-auto">
-                <!-- AI content will be injected here -->
-            </div>
+        <div id="ai-modal-content" class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-slate-200"><h3 id="modal-title" class="text-xl font-bold text-slate-800">AI Assistant</h3><button id="modal-close" class="text-slate-500 hover:text-slate-800"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>
+            <div id="modal-content-area" class="p-6 overflow-y-auto"></div>
         </div>
+        <div id="log-modal-content" class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col hidden">
+            <!-- Content for logging workout will be injected here -->
+        </div>
+    </div>
+    
+    <div id="timer-modal" class="fixed bottom-5 right-5 bg-blue-600 text-white rounded-2xl shadow-2xl p-6 w-64 z-50 hidden transform transition-all">
+        <h3 class="font-bold text-lg mb-2">Rest Timer</h3>
+        <p id="timer-display" class="text-5xl font-mono text-center mb-4">01:30</p>
+        <button id="skip-timer-btn" class="w-full bg-white text-blue-600 font-bold py-2 rounded-lg hover:bg-blue-100">Skip</button>
     </div>
 
 
     <script>
-        // --- DATA STRUCTURE ---
-        const workoutPlan = {
-            'Monday': {
-                emoji: '🟦',
-                title: 'Upper Body Strength (Push + Pull)',
-                mainWorkout: {
-                    title: 'Main Workout',
-                    exercises: [
-                        { name: 'Barbell Bench Press', sets: 4, reps: '8-10', rest: '90s' },
-                        { name: 'Lat Pulldown / Pull-ups', sets: 4, reps: '10-12', rest: '90s' },
-                        { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10-12', rest: '60s' },
-                        { name: 'Cable Row / Seated Row', sets: 3, reps: '12', rest: '60s' },
-                        { name: 'Incline Dumbbell Flys', sets: 2, reps: '12-15', rest: '45s' },
-                        { name: 'Bicep Curls + Tricep Pushdowns (superset)', sets: 3, reps: '12-15', rest: '45s' }
-                    ]
-                },
-                warmUp: [ "Treadmill walk or rowing: 5 min", "Dynamic stretches: arm circles, band pulls, scapular push-ups" ],
-                coolDown: "Chest + shoulder stretches, deep breathing (3 mins)",
-                videos: [
-                    { title: "Barbell Bench Press", embedId: "4T9x1-WvHdw" },
-                    { title: "Lat Pulldown", embedId: "0oe_DjI1fQ4" },
-                    { title: "Dumbbell Shoulder Press", embedId: "qEwKCR5-HaA" }
-                ]
-            },
-            'Tuesday': {
-                emoji: '🟧',
-                title: 'HIIT + Core Conditioning',
-                mainCircuit: {
-                    title: 'Main Circuit – Repeat 3 Rounds',
-                    details: '30s work, 15s rest between exercises',
-                    exercises: [
-                        { name: "Jump Squats", sets: 3, reps: "30s", rest: "15s" },
-                        { name: "Mountain Climbers", sets: 3, reps: "30s", rest: "15s" },
-                        { name: "Push-Ups", sets: 3, reps: "30s", rest: "15s" },
-                        { name: "High Knees", sets: 3, reps: "30s", rest: "15s" },
-                        { name: "Dumbbell Thrusters", sets: 3, reps: "30s", rest: "15s" },
-                        { name: "Plank", sets: 3, reps: "60s", rest: "15s" }
-                    ]
-                },
-                coreFinisher: {
-                    title: 'Core Finisher',
-                    exercises: [
-                        { name: 'Hanging Leg Raises', sets: 3, reps: '10', rest: '45s' },
-                        { name: 'Russian Twists', sets: 3, reps: '20', rest: '45s' },
-                        { name: 'Plank Variations', sets: 3, reps: '45s', rest: '45s' }
-                    ]
-                },
-                warmUp: [ "Skipping / Rowing / Treadmill Intervals: 5 min", "Mobility: hip openers, ankle mobility, thoracic twists" ],
-                coolDown: "Light stretching, 5-min walk, rehydrate",
-                videos: [
-                    { title: "Jump Squats", embedId: "A-cFYWvaHr0" },
-                    { title: "Mountain Climbers", embedId: "w2iTq_IIiBA" },
-                    { title: "Push-Ups", embedId: "P7Mfu174U1I" }
-                ]
-            },
-            'Thursday': {
-                emoji: '🟩',
-                title: 'Lower Body Strength + Glutes',
-                mainWorkout: {
-                    title: 'Main Workout',
-                    exercises: [
-                        { name: 'Barbell Back Squats', sets: 4, reps: '8-10', rest: '90s' },
-                        { name: 'Romanian Deadlifts (Dumbbells)', sets: 4, reps: '10-12', rest: '90s' },
-                        { name: 'Bulgarian Split Squats', sets: 3, reps: '10', rest: '60s' },
-                        { name: 'Leg Curl Machine', sets: 3, reps: '12', rest: '60s' },
-                        { name: 'Cable Glute Kickbacks', sets: 2, reps: '15', rest: '45s' },
-                        { name: 'Standing Calf Raises', sets: 3, reps: '15', rest: '45s' }
-                    ]
-                },
-                warmUp: [ "Hip bridges, glute activation, bodyweight squats, band walks" ],
-                coolDown: "Hamstring and quad stretches, glute foam rolling",
-                videos: [
-                    { title: "Barbell Squats", embedId: "bEv6CCg2BC8" },
-                    { title: "Romanian Deadlifts", embedId: "JCXUYuzwNrM" },
-                    { title: "Bulgarian Split Squats", embedId: "QF0BQS2W80k" }
-                ]
-            },
-            'Friday': {
-                emoji: '🟨',
-                title: 'Full Body Functional Circuit',
-                 mainCircuit: {
-                    title: 'Functional Circuit – 4 Rounds',
-                    details: '40s on / 20s off',
-                    exercises: [
-                        { name: "Kettlebell Swings", sets: 4, reps: "40s", rest: "20s" },
-                        { name: "Dumbbell Snatch (alternate arms)", sets: 4, reps: "40s", rest: "20s" },
-                        { name: "Jump Lunges / Step-ups", sets: 4, reps: "40s", rest: "20s" },
-                        { name: "Push Press (Barbell or Dumbbells)", sets: 4, reps: "40s", rest: "20s" },
-                        { name: "Med Ball Slams", sets: 4, reps: "40s", rest: "20s" },
-                        { name: "Renegade Rows", sets: 4, reps: "40s", rest: "20s" }
-                    ]
-                },
-                warmUp: [ "Joint rotations + treadmill incline walk (5 min)" ],
-                coolDown: "Deep stretching, foam rolling, diaphragmatic breathing (3 mins)",
-                videos: [
-                    { title: "Kettlebell Swings", embedId: "sSESeQAir2M" },
-                    { title: "Dumbbell Snatch", embedId: "xA_DpewzL7c" },
-                    { title: "Jump Lunges", embedId: "kneZ1IWUQUY" },
-                    { title: "Push Press", embedId: "yCvb3ZBPM9s" },
-                    { title: "Med Ball Slams", embedId: "QxYhFwMd1Ks" },
-                    { title: "Renegade Rows", embedId: "mgJ4V2RQgTw" }
-                ]
-            }
-        };
-
-        // --- STATE MANAGEMENT ---
+        // --- DATA STRUCTURE & STATE ---
+        let workoutPlan = JSON.parse(localStorage.getItem('workoutPlan')) || { 'Monday': { emoji: '🟦', title: 'Upper Body Strength (Push + Pull)', mainWorkout: { title: 'Main Workout', exercises: [ { name: 'Barbell Bench Press', sets: 4, reps: '8-10', rest: '90s' }, { name: 'Lat Pulldown / Pull-ups', sets: 4, reps: '10-12', rest: '90s' }, { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10-12', rest: '60s' }, { name: 'Cable Row / Seated Row', sets: 3, reps: '12', rest: '60s' }, { name: 'Incline Dumbbell Flys', sets: 2, reps: '12-15', rest: '45s' }, { name: 'Bicep Curls + Tricep Pushdowns (superset)', sets: 3, reps: '12-15', rest: '45s' } ] }, warmUp: [ "Treadmill walk or rowing: 5 min", "Dynamic stretches: arm circles, band pulls, scapular push-ups" ], coolDown: "Chest + shoulder stretches, deep breathing (3 mins)", videos: [ { title: "Barbell Bench Press", embedId: "4T9x1-WvHdw" }, { title: "Lat Pulldown", embedId: "0oe_DjI1fQ4" }, { title: "Dumbbell Shoulder Press", embedId: "qEwKCR5-HaA" } ] }, 'Tuesday': { emoji: '🟧', title: 'HIIT + Core Conditioning', mainCircuit: { title: 'Main Circuit – Repeat 3 Rounds', details: '30s work, 15s rest between exercises', exercises: [ { name: "Jump Squats", sets: 3, reps: "30s", rest: "15s" }, { name: "Mountain Climbers", sets: 3, reps: "30s", rest: "15s" }, { name: "Push-Ups", sets: 3, reps: "30s", rest: "15s" }, { name: "High Knees", sets: 3, reps: "30s", rest: "15s" }, { name: "Dumbbell Thrusters", sets: 3, reps: "30s", rest: "15s" }, { name: "Plank", sets: 3, reps: "60s", rest: "15s" } ] }, coreFinisher: { title: 'Core Finisher', exercises: [ { name: 'Hanging Leg Raises', sets: 3, reps: '10', rest: '45s' }, { name: 'Russian Twists', sets: 3, reps: '20', rest: '45s' }, { name: 'Plank Variations', sets: 3, reps: '45s', rest: '45s' } ] }, warmUp: [ "Skipping / Rowing / Treadmill Intervals: 5 min", "Mobility: hip openers, ankle mobility, thoracic twists" ], coolDown: "Light stretching, 5-min walk, rehydrate", videos: [ { title: "Jump Squats", embedId: "A-cFYWvaHr0" }, { title: "Mountain Climbers", embedId: "w2iTq_IIiBA" }, { title: "Push-Ups", embedId: "P7Mfu174U1I" } ] }, 'Thursday': { emoji: '🟩', title: 'Lower Body Strength + Glutes', mainWorkout: { title: 'Main Workout', exercises: [ { name: 'Barbell Back Squats', sets: 4, reps: '8-10', rest: '90s' }, { name: 'Romanian Deadlifts (Dumbbells)', sets: 4, reps: '10-12', rest: '90s' }, { name: 'Bulgarian Split Squats', sets: 3, reps: '10', rest: '60s' }, { name: 'Leg Curl Machine', sets: 3, reps: '12', rest: '60s' }, { name: 'Cable Glute Kickbacks', sets: 2, reps: '15', rest: '45s' }, { name: 'Standing Calf Raises', sets: 3, reps: '15', rest: '45s' } ] }, warmUp: [ "Hip bridges, glute activation, bodyweight squats, band walks" ], coolDown: "Hamstring and quad stretches, glute foam rolling", videos: [ { title: "Barbell Squats", embedId: "bEv6CCg2BC8" }, { title: "Romanian Deadlifts", embedId: "JCXUYuzwNrM" }, { title: "Bulgarian Split Squats", embedId: "QF0BQS2W80k" } ] }, 'Friday': { emoji: '🟨', title: 'Full Body Functional Circuit', mainCircuit: { title: 'Functional Circuit – 4 Rounds', details: '40s on / 20s off', exercises: [ { name: "Kettlebell Swings", sets: 4, reps: "40s", rest: "20s" }, { name: "Dumbbell Snatch (alternate arms)", sets: 4, reps: "40s", rest: "20s" }, { name: "Jump Lunges / Step-ups", sets: 4, reps: "40s", rest: "20s" }, { name: "Push Press (Barbell or Dumbbells)", sets: 4, reps: "40s", rest: "20s" }, { name: "Med Ball Slams", sets: 4, reps: "40s", rest: "20s" }, { name: "Renegade Rows", sets: 4, reps: "40s", rest: "20s" } ] }, warmUp: [ "Joint rotations + treadmill incline walk (5 min)" ], coolDown: "Deep stretching, foam rolling, diaphragmatic breathing (3 mins)", videos: [ { title: "Kettlebell Swings", embedId: "sSESeQAir2M" }, { title: "Dumbbell Snatch", embedId: "xA_DpewzL7c" }, { title: "Jump Lunges", embedId: "kneZ1IWUQUY" }, { title: "Push Press", embedId: "yCvb3ZBPM9s" }, { title: "Med Ball Slams", embedId: "QxYhFwMd1Ks" }, { title: "Renegade Rows", embedId: "mgJ4V2RQgTw" } ] } };
+        let progressLog = JSON.parse(localStorage.getItem('progressLog')) || {};
         let currentDay = 'Monday';
-        let completionState = JSON.parse(localStorage.getItem('workoutCompletion')) || {};
+        let timerInterval;
+        let progressChart;
 
         // --- GEMINI API ---
+        const apiKey = "AIzaSyATfmbgno5Rw4fl3fGojv1OyZDS4GsSumY"; // IMPORTANT: Add your secured API key here.
 
-        /**
-         * Calls the Gemini API to generate content based on a prompt.
-         * @param {string} prompt - The prompt to send to the Gemini API.
-         * @returns {Promise<string>} - The generated text from the API.
-         */
-        async function callGeminiAPI(prompt) {
-            const apiKey = "AIzaSyATfmbgno5Rw4fl3fGojv1OyZDS4GsSumY"; // The API key will be provided by the environment.
+        async function callGeminiAPI(prompt, jsonSchema = null) {
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            
-            const payload = {
-                contents: [{
-                    role: "user",
-                    parts: [{ text: prompt }]
-                }]
-            };
-
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+            if (jsonSchema) { payload.generationConfig = { responseMimeType: "application/json", responseSchema: jsonSchema }; }
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
-                }
-
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
                 const result = await response.json();
-                
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    return result.candidates[0].content.parts[0].text;
-                } else {
-                    console.error("Unexpected API response structure:", result);
-                    return "Sorry, I couldn't get a response. The API returned an unexpected format.";
-                }
-
+                if (result.candidates?.[0]?.content?.parts?.[0]?.text) return result.candidates[0].content.parts[0].text;
+                throw new Error("Invalid API response structure.");
             } catch (error) {
                 console.error("Error calling Gemini API:", error);
-                return `Sorry, an error occurred while contacting the AI assistant: ${error.message}. Please check the console for more details.`;
+                return `Sorry, an error occurred: ${error.message}. Please check your API key and network connection.`;
             }
         }
 
-        // --- MODAL ---
-
+        // --- MODALS & TIMER ---
         const modalBackdrop = document.getElementById('modal-backdrop');
+        const aiModalContent = document.getElementById('ai-modal-content');
+        const logModalContent = document.getElementById('log-modal-content');
         const modalTitle = document.getElementById('modal-title');
         const modalContentArea = document.getElementById('modal-content-area');
-        const modalCloseBtn = document.getElementById('modal-close');
+        const loadingIndicator = `<div class="flex items-center justify-center p-8"><div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div><p class="ml-4 text-slate-600">Thinking...</p></div>`;
+        const timerModal = document.getElementById('timer-modal');
+        const timerDisplay = document.getElementById('timer-display');
 
-        function showModal(title, content) {
-            modalTitle.textContent = title;
-            modalContentArea.innerHTML = content;
+        function showModal(type, title, content) {
             modalBackdrop.classList.remove('hidden');
-        }
-
-        function hideModal() {
-            modalBackdrop.classList.add('hidden');
-        }
-
-        modalCloseBtn.addEventListener('click', hideModal);
-        modalBackdrop.addEventListener('click', (e) => {
-            if (e.target === modalBackdrop) {
-                hideModal();
+            if (type === 'ai') {
+                aiModalContent.classList.remove('hidden');
+                logModalContent.classList.add('hidden');
+                modalTitle.textContent = title;
+                modalContentArea.innerHTML = content;
+            } else if (type === 'log') {
+                aiModalContent.classList.add('hidden');
+                logModalContent.classList.remove('hidden');
+                logModalContent.innerHTML = content;
             }
+        }
+        function hideModal() { modalBackdrop.classList.add('hidden'); }
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            timerModal.classList.remove('hidden');
+            let remaining = seconds;
+            const updateDisplay = () => {
+                const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+                const secs = String(remaining % 60).padStart(2, '0');
+                timerDisplay.textContent = `${mins}:${secs}`;
+            };
+            updateDisplay();
+            timerInterval = setInterval(() => {
+                remaining--;
+                updateDisplay();
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerModal.classList.add('hidden');
+                    const synth = new Tone.Synth().toDestination();
+                    synth.triggerAttackRelease("C5", "0.5");
+                }
+            }, 1000);
+        }
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerModal.classList.add('hidden');
+        }
+        document.getElementById('modal-close').addEventListener('click', hideModal);
+        document.getElementById('skip-timer-btn').addEventListener('click', stopTimer);
+        modalBackdrop.addEventListener('click', (e) => e.target === modalBackdrop && hideModal());
+        
+        // --- PAGE NAVIGATION & RENDER ---
+        document.querySelectorAll('.main-nav-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const pageId = button.dataset.page;
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                document.getElementById(`page-${pageId}`).classList.remove('hidden');
+                document.querySelectorAll('.main-nav-btn').forEach(btn => {
+                    btn.classList.remove('border-blue-600', 'text-blue-600');
+                    btn.classList.add('border-transparent', 'text-slate-500');
+                });
+                button.classList.add('border-blue-600', 'text-blue-600');
+                if (pageId === 'progress') renderProgressPage();
+            });
         });
 
-        const loadingIndicator = `
-            <div class="flex items-center justify-center p-8">
-                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
-                <p class="ml-4 text-slate-600">Thinking...</p>
-            </div>
-        `;
-
-        // --- RENDER FUNCTIONS ---
         function renderTabs() {
             const selector = document.getElementById('day-selector');
             selector.innerHTML = ''; 
-            Object.keys(workoutPlan).forEach(day => {
-                const dayData = workoutPlan[day];
-                const isActive = day === currentDay;
+            const days = Object.keys(workoutPlan);
+            if (days.length === 0) {
+                selector.innerHTML = `<p class="text-center text-slate-500">No workout plan loaded. Use the AI Plan Generator!</p>`;
+                document.getElementById('workout-display').innerHTML = '';
+                return;
+            }
+            currentDay = days.includes(currentDay) ? currentDay : days[0];
+            days.forEach(day => {
                 const button = document.createElement('button');
-                button.textContent = `${dayData.emoji} ${day}`;
-                button.className = `tab text-sm sm:text-base font-semibold py-2 px-4 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isActive ? 'bg-blue-600 text-white shadow' : 'bg-white text-slate-700 hover:bg-slate-200'}`;
-                button.onclick = () => {
-                    currentDay = day;
-                    renderTabs();
-                    renderWorkout();
-                };
+                button.textContent = `${workoutPlan[day].emoji || '💪'} ${day}`;
+                button.className = `tab text-sm sm:text-base font-semibold py-2 px-4 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${day === currentDay ? 'bg-blue-600 text-white shadow' : 'bg-white text-slate-700 hover:bg-slate-200'}`;
+                button.onclick = () => { currentDay = day; renderTabs(); renderWorkoutForDay(); };
                 selector.appendChild(button);
             });
         }
 
-        function renderWorkout() {
+        function renderWorkoutForDay() {
             const display = document.getElementById('workout-display');
             const data = workoutPlan[currentDay];
-            if (!data) {
-                display.innerHTML = '<p>Select a day to see the workout.</p>';
-                return;
-            }
-            
-            if (!completionState[currentDay]) {
-                completionState[currentDay] = {};
-            }
-
-            const createList = (items) => items.map(item => `<li class="mb-1">${item}</li>`).join('');
+            if (!data) { display.innerHTML = '<p class="text-center text-slate-500">Select a day.</p>'; return; }
+            const today = new Date().toISOString().slice(0, 10);
+            if (!progressLog[today]) progressLog[today] = {};
 
             const createExerciseTable = (exercises, prefix) => {
                 const rows = exercises.map((ex, index) => {
                     const exerciseKey = `${prefix}-${index}`;
-                    const isCompleted = completionState[currentDay][exerciseKey] || false;
-                    return `
-                        <tr class="${isCompleted ? 'completed' : ''}" data-exercise-key="${exerciseKey}" data-exercise-name="${ex.name}">
-                            <td class="py-3 px-4">
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${isCompleted ? 'checked' : ''}>
-                                    <span class="font-medium text-slate-800">${ex.name}</span>
-                                </label>
-                            </td>
+                    const isCompleted = progressLog[today]?.[exerciseKey]?.isCompleted || false;
+                    return `<tr class="${isCompleted ? 'completed-exercise' : ''}" data-exercise-key="${exerciseKey}" data-exercise-name="${ex.name}" data-sets="${ex.sets}" data-reps="${ex.reps}" data-rest="${ex.rest}">
+                            <td class="py-3 px-4 font-medium text-slate-800">${ex.name}</td>
                             <td class="py-3 px-4 text-center">${ex.sets}</td>
                             <td class="py-3 px-4 text-center">${ex.reps}</td>
                             <td class="py-3 px-4 text-center">${ex.rest || 'N/A'}</td>
                             <td class="py-3 px-4 text-center">
                                 <div class="flex justify-center items-center gap-2">
-                                    <button class="explain-btn p-1 text-slate-500 hover:text-blue-600" title="Explain Exercise">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                                    </button>
-                                    <button class="swap-btn p-1 text-slate-500 hover:text-blue-600" title="Swap Exercise ✨">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="8 21 3 21 3 16"></polyline><line x1="15" y1="4" x2="3" y2="16"></line></svg>
-                                    </button>
+                                    <button class="log-workout-btn bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-blue-600">LOG</button>
+                                    <button class="explain-btn p-1 text-slate-400 hover:text-blue-600" title="Explain Exercise"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>
+                                    <button class="swap-btn p-1 text-slate-400 hover:text-blue-600" title="Swap Exercise ✨"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="8 21 3 21 3 16"></polyline><line x1="15" y1="4" x2="3" y2="16"></line></svg></button>
                                 </div>
                             </td>
-                        </tr>
-                    `;
+                        </tr>`;
                 }).join('');
+                return `<div class="overflow-x-auto"><table class="w-full text-sm text-left text-slate-600">
+                    <thead class="text-xs text-slate-700 uppercase bg-slate-100"><tr><th class="py-3 px-4 rounded-l-lg">Exercise</th><th class="py-3 px-4 text-center">Sets</th><th class="py-3 px-4 text-center">Reps</th><th class="py-3 px-4 text-center">Rest</th><th class="py-3 px-4 text-center rounded-r-lg">Actions</th></tr></thead>
+                    <tbody>${rows}</tbody></table></div>`;
+            };
+            const workoutSections = [data.mainWorkout, data.mainCircuit, data.coreFinisher].filter(Boolean);
+            const workoutHtml = workoutSections.map(s => `<div class="mb-6"><h3 class="text-xl font-semibold mb-3 text-blue-700">${s.title}</h3>${s.details ? `<p class="text-sm text-slate-500 mb-3">${s.details}</p>` : ''}${createExerciseTable(s.exercises, s.title.toLowerCase().replace(/ /g, '-'))}</div>`).join('');
+            display.innerHTML = `<div class="workout-card bg-white rounded-2xl shadow-lg p-6 sm:p-8"><h2 class="text-2xl sm:text-3xl font-bold mb-6 text-slate-800">${data.emoji || '💪'} ${data.title}</h2><div class="mb-6"><h3 class="text-xl font-semibold mb-2 text-blue-700">Warm-Up</h3><ul class="list-disc list-inside text-slate-600 space-y-1">${(data.warmUp || []).map(item => `<li class="mb-1">${item}</li>`).join('')}</ul></div>${workoutHtml}<div class="mb-8"><h3 class="text-xl font-semibold mb-2 text-blue-700">Cooldown</h3><p class="text-slate-600">${data.coolDown}</p></div></div>`;
+            addWorkoutEventListeners();
+        }
 
-                return `
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left text-slate-600">
-                            <thead class="text-xs text-slate-700 uppercase bg-slate-100">
-                                <tr>
-                                    <th scope="col" class="py-3 px-4 rounded-l-lg">Exercise</th>
-                                    <th scope="col" class="py-3 px-4 text-center">Sets</th>
-                                    <th scope="col" class="py-3 px-4 text-center">Reps</th>
-                                    <th scope="col" class="py-3 px-4 text-center">Rest</th>
-                                    <th scope="col" class="py-3 px-4 text-center rounded-r-lg">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>${rows}</tbody>
-                        </table>
-                    </div>
-                `;
+        function renderProgressPage() {
+            const selectEl = document.getElementById('progress-exercise-select');
+            const messageEl = document.getElementById('chart-message');
+            const allLoggedExercises = new Set();
+            Object.values(progressLog).forEach(dayLog => {
+                Object.values(dayLog).forEach(exerciseLog => {
+                    allLoggedExercises.add(exerciseLog.name);
+                });
+            });
+
+            if (allLoggedExercises.size === 0) {
+                selectEl.innerHTML = '';
+                messageEl.textContent = 'Log some workouts to see your progress here!';
+                if (progressChart) progressChart.destroy();
+                return;
+            }
+            
+            selectEl.innerHTML = [...allLoggedExercises].map(name => `<option value="${name}">${name}</option>`).join('');
+
+            const renderChart = (exerciseName) => {
+                const labels = [];
+                const dataPoints = [];
+                const sortedDates = Object.keys(progressLog).sort((a, b) => new Date(a) - new Date(b));
+
+                sortedDates.forEach(date => {
+                    const dayLog = progressLog[date];
+                    Object.values(dayLog).forEach(exLog => {
+                        if (exLog.name === exerciseName && exLog.sets) {
+                            labels.push(date);
+                            const maxWeight = Math.max(...exLog.sets.map(s => s.weight || 0));
+                            dataPoints.push(maxWeight);
+                        }
+                    });
+                });
+                
+                messageEl.textContent = dataPoints.length > 1 ? '' : 'Log this exercise on another day to see a trend line.';
+
+                if (progressChart) progressChart.destroy();
+                const ctx = document.getElementById('progress-chart').getContext('2d');
+                progressChart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels, datasets: [{ label: `Max Weight Lifted (lbs/kg) for ${exerciseName}`, data: dataPoints, fill: false, borderColor: 'rgb(75, 192, 192)', tension: 0.1 }] },
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
             };
             
-            const workoutSections = [
-                data.mainWorkout,
-                data.mainCircuit,
-                data.coreFinisher
-            ].filter(Boolean);
-
-            const workoutHtml = workoutSections.map((section) => {
-                const prefix = section.title.toLowerCase().replace(/ /g, '-');
-                return `
-                    <div class="mb-6">
-                        <h3 class="text-xl font-semibold mb-3 text-blue-700">${section.title}</h3>
-                        ${section.details ? `<p class="text-sm text-slate-500 mb-3">${section.details}</p>` : ''}
-                        ${createExerciseTable(section.exercises, prefix)}
-                    </div>
-                `;
-            }).join('');
-
-
-            display.innerHTML = `
-                <div class="workout-card bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-                    <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-slate-800">${data.emoji} ${data.title}</h2>
-                    <div class="mb-6">
-                        <h3 class="text-xl font-semibold mb-2 text-blue-700">Warm-Up (5-10 min)</h3>
-                        <ul class="list-disc list-inside text-slate-600 space-y-1">${createList(data.warmUp)}</ul>
-                    </div>
-                    ${workoutHtml}
-                    <div class="mb-8">
-                        <h3 class="text-xl font-semibold mb-2 text-blue-700">Cooldown</h3>
-                        <p class="text-slate-600">${data.coolDown}</p>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-semibold mb-4 text-blue-700">Reference Videos</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            ${data.videos.map(video => `
-                                <div>
-                                    <div class="rounded-lg overflow-hidden shadow-md aspect-video bg-slate-200">
-                                        <iframe class="w-full h-full" src="https://www.youtube.com/embed/${video.embedId}" title="${video.title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                                    </div>
-                                    <a href="https://www.youtube.com/watch?v=${video.embedId}" target="_blank" rel="noopener noreferrer" class="block text-center mt-2 text-sm text-blue-600 hover:underline">
-                                        Watch on YouTube
-                                    </a>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            addEventListeners();
+            selectEl.onchange = (e) => renderChart(e.target.value);
+            renderChart(selectEl.value);
         }
+
+        // --- EVENT LISTENERS ---
+        function addWorkoutEventListeners() {
+            document.querySelectorAll('.log-workout-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    const row = e.currentTarget.closest('tr');
+                    const { exerciseKey, exerciseName, sets, reps, rest } = row.dataset;
+                    const numSets = parseInt(sets.match(/\d+/)[0] || 1);
+                    const today = new Date().toISOString().slice(0, 10);
+                    const existingLog = progressLog[today]?.[exerciseKey]?.sets || [];
+
+                    let inputsHtml = '';
+                    for (let i = 0; i < numSets; i++) {
+                        inputsHtml += `<div class="grid grid-cols-4 gap-4 items-center mb-2">
+                            <span class="font-medium text-slate-600 col-span-1">Set ${i + 1}</span>
+                            <div class="col-span-1"><label class="text-xs">Weight</label><input type="number" class="log-weight w-full p-1 border rounded" value="${existingLog[i]?.weight || ''}"></div>
+                            <div class="col-span-1"><label class="text-xs">Reps</label><input type="number" class="log-reps w-full p-1 border rounded" value="${existingLog[i]?.reps || ''}"></div>
+                            <div class="col-span-1 pt-4"><button class="start-timer-btn w-full bg-blue-100 text-blue-700 text-xs font-bold py-1 px-2 rounded-full" data-rest="${rest}">Start Timer</button></div>
+                        </div>`;
+                    }
+                    const modalHtml = `<div class="flex justify-between items-center p-4 border-b"><h3 class="text-xl font-bold">${exerciseName}</h3><button class="modal-close-btn text-slate-500 hover:text-slate-800">&times;</button></div><div class="p-6">${inputsHtml}</div><div class="p-4 border-t"><button class="save-log-btn w-full bg-blue-600 text-white font-bold py-2 rounded-lg">Save & Mark Complete</button></div>`;
+                    showModal('log', '', modalHtml);
+
+                    document.querySelector('.save-log-btn').onclick = () => {
+                        const loggedSets = [];
+                        document.querySelectorAll('#log-modal-content .grid').forEach(setRow => {
+                            const weight = setRow.querySelector('.log-weight').value;
+                            const reps = setRow.querySelector('.log-reps').value;
+                            loggedSets.push({ weight: parseFloat(weight) || 0, reps: parseInt(reps) || 0 });
+                        });
+                        
+                        if (!progressLog[today]) progressLog[today] = {};
+                        progressLog[today][exerciseKey] = { name: exerciseName, sets: loggedSets, isCompleted: true };
+                        localStorage.setItem('progressLog', JSON.stringify(progressLog));
+                        hideModal();
+                        renderWorkoutForDay();
+                    };
+                    document.querySelectorAll('.start-timer-btn').forEach(timerBtn => timerBtn.onclick = () => startTimer(parseInt(timerBtn.dataset.rest.match(/\d+/)[0] || 60)));
+                    document.querySelector('#log-modal-content .modal-close-btn').onclick = hideModal;
+                });
+            });
+
+            document.querySelectorAll('.explain-btn').forEach(b => b.addEventListener('click', async e => {
+                const name = e.currentTarget.closest('tr').dataset.exerciseName;
+                showModal('ai', `Explaining: ${name}`, loadingIndicator);
+                const prompt = `Explain how to perform the exercise "${name}". Describe the proper form, common mistakes to avoid, and the primary muscles worked. Format the response clearly with headings.`;
+                const explanation = await callGeminiAPI(prompt);
+                showModal('ai', `Explaining: ${name}`, `<div id="modal-content">${explanation}</div>`);
+            }));
+
+            document.querySelectorAll('.swap-btn').forEach(b => b.addEventListener('click', async e => {
+                const name = e.currentTarget.closest('tr').dataset.exerciseName;
+                const type = workoutPlan[currentDay].title;
+                showModal('ai', `Suggesting Swap for: ${name}`, loadingIndicator);
+                const prompt = `Suggest one single alternative exercise for "${name}" that targets similar muscle groups. The original exercise is part of a "${type}" workout. Provide only the name of the new exercise.`;
+                const suggestion = await callGeminiAPI(prompt);
+                showModal('ai', `Swap Suggestion for: ${name}`, `<div id="modal-content">A good alternative is: <strong>${suggestion}</strong></div>`);
+            }));
+        }
+
+        document.getElementById('generate-plan-btn').addEventListener('click', async () => {
+            if (!apiKey) { showModal("ai", "API Key Missing", "Please add your Gemini API key."); return; }
+            const goal = document.getElementById('goal').value;
+            const experience = document.getElementById('experience').value;
+            const equipment = document.getElementById('equipment').value || 'standard gym equipment';
+            showModal("ai", "Generating Your Plan...", loadingIndicator);
+            const prompt = `Create a 4-day workout plan for a user with the goal of "${goal}". The user's experience level is "${experience}" and they have access to the following equipment: "${equipment}". The plan should be split over four distinct days (e.g., Monday, Tuesday, Thursday, Friday). For each day, provide a title, a suitable emoji, a warm-up list, a cooldown description, and a list of main exercises. Each exercise must have a name, sets, reps, and rest period. Do not include video links.`;
+            const schema = { type: "OBJECT", properties: { "Monday": { "type": "OBJECT", properties: { "emoji": { "type": "STRING" }, "title": { "type": "STRING" }, "warmUp": { "type": "ARRAY", "items": { "type": "STRING" } }, "coolDown": { "type": "STRING" }, "mainWorkout": { "type": "OBJECT", properties: { "title": { "type": "STRING" }, "exercises": { "type": "ARRAY", "items": { "type": "OBJECT", properties: { "name": { "type": "STRING" }, "sets": { "type": "STRING" }, "reps": { "type": "STRING" }, "rest": { "type": "STRING" } } } } } } } }, "Tuesday": { "type": "OBJECT", properties: { "emoji": { "type": "STRING" }, "title": { "type": "STRING" }, "warmUp": { "type": "ARRAY", "items": { "type": "STRING" } }, "coolDown": { "type": "STRING" }, "mainWorkout": { "type": "OBJECT", properties: { "title": { "type": "STRING" }, "exercises": { "type": "ARRAY", "items": { "type": "OBJECT", properties: { "name": { "type": "STRING" }, "sets": { "type": "STRING" }, "reps": { "type": "STRING" }, "rest": { "type": "STRING" } } } } } } } }, "Thursday": { "type": "OBJECT", properties: { "emoji": { "type": "STRING" }, "title": { "type": "STRING" }, "warmUp": { "type": "ARRAY", "items": { "type": "STRING" } }, "coolDown": { "type": "STRING" }, "mainWorkout": { "type": "OBJECT", properties: { "title": { "type": "STRING" }, "exercises": { "type": "ARRAY", "items": { "type": "OBJECT", properties: { "name": { "type": "STRING" }, "sets": { "type": "STRING" }, "reps": { "type": "STRING" }, "rest": { "type": "STRING" } } } } } } } }, "Friday": { "type": "OBJECT", properties: { "emoji": { "type": "STRING" }, "title": { "type": "STRING" }, "warmUp": { "type": "ARRAY", "items": { "type": "STRING" } }, "coolDown": { "type": "STRING" }, "mainWorkout": { "type": "OBJECT", properties: { "title": { "type": "STRING" }, "exercises": { "type": "ARRAY", "items": { "type": "OBJECT", properties: { "name": { "type": "STRING" }, "sets": { "type": "STRING" }, "reps": { "type": "STRING" }, "rest": { "type": "STRING" } } } } } } } } } };
+            const responseText = await callGeminiAPI(prompt, schema);
+            try {
+                const newPlan = JSON.parse(responseText);
+                workoutPlan = newPlan;
+                progressLog = {}; 
+                localStorage.setItem('workoutPlan', JSON.stringify(workoutPlan));
+                localStorage.setItem('progressLog', JSON.stringify(progressLog));
+                hideModal();
+                document.querySelector('.main-nav-btn[data-page="plan"]').click();
+                renderTabs();
+                renderWorkoutForDay();
+            } catch (e) {
+                console.error("Failed to parse AI response:", e);
+                showModal("ai", "Generation Failed", `The AI returned a plan in an unexpected format. Please try generating again.\n\n<pre class="mt-4 bg-slate-100 p-2 rounded text-xs">${responseText}</pre>`);
+            }
+        });
         
-        /**
-         * Adds event listeners for all interactive elements.
-         */
-        function addEventListeners() {
-            // Checkbox listeners
-            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', (e) => {
-                    const row = e.target.closest('tr');
-                    if (!row) return;
-                    const exerciseKey = row.dataset.exerciseKey;
-                    completionState[currentDay][exerciseKey] = e.target.checked;
-                    row.classList.toggle('completed', e.target.checked);
-                    localStorage.setItem('workoutCompletion', JSON.stringify(completionState));
-                });
-            });
-
-            // Explain button listeners
-            document.querySelectorAll('.explain-btn').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const exerciseName = e.currentTarget.closest('tr').dataset.exerciseName;
-                    showModal(`Explaining: ${exerciseName}`, loadingIndicator);
-                    const prompt = `Explain how to perform the exercise "${exerciseName}". Describe the proper form, common mistakes to avoid, and the primary muscles worked. Format the response clearly with headings for each section.`;
-                    const explanation = await callGeminiAPI(prompt);
-                    showModal(`Explaining: ${exerciseName}`, `<div id="modal-content">${explanation}</div>`);
-                });
-            });
-
-            // Swap button listeners
-            document.querySelectorAll('.swap-btn').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const exerciseName = e.currentTarget.closest('tr').dataset.exerciseName;
-                    const workoutType = workoutPlan[currentDay].title;
-                    showModal(`Suggesting Swap for: ${exerciseName}`, loadingIndicator);
-                    const prompt = `Suggest one single alternative or substitute exercise for "${exerciseName}" that targets similar muscle groups. The original exercise is part of a "${workoutType}" workout. Provide only the name of the new exercise and nothing else.`;
-                    const suggestion = await callGeminiAPI(prompt);
-                    showModal(`Swap Suggestion for: ${exerciseName}`, `<div id="modal-content">A good alternative is: <strong>${suggestion}</strong></div>`);
-                });
-            });
-        }
+        document.getElementById('nutrition-btn').addEventListener('click', async () => {
+             if (!apiKey) { showModal("ai", "API Key Missing", "Please add your Gemini API key."); return; }
+            const query = document.getElementById('nutrition-query').value;
+            if (!query) { showModal("ai", "Input Required", "Please enter a question."); return; }
+            showModal("ai", "AI Nutrition Helper", loadingIndicator);
+            const prompt = `As a helpful nutrition assistant for a fitness app, answer the following user query: "${query}". Provide a clear, helpful, and concise response.`;
+            const response = await callGeminiAPI(prompt);
+            showModal("ai", "AI Nutrition Helper", `<div id="modal-content">${response}</div>`);
+        });
 
         // --- INITIALIZATION ---
         function init() {
             renderTabs();
-            renderWorkout();
+            renderWorkoutForDay();
         }
 
-        // Run the app
         init();
     </script>
 </body>
